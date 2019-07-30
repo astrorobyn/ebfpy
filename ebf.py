@@ -508,7 +508,7 @@ class _TypeManager(object):
     @staticmethod        
     def stos_l (typename):
         """
-        python type string short to long form   
+        python type string short to long form   f
         """
         return _TypeManager.typelistl[_TypeManager.stoi(typename)]
         
@@ -838,7 +838,7 @@ class _EbfHeader:
             
         else:
             '''Rest'''
-            self.datatype = numpy.array(_TypeManager.stoi(data.dtype.str[1:3]), dtype = "int32")
+            self.datatype = numpy.array(_TypeManager.stoi(data.dtype.str[1:3].lower()), dtype = "int32")
 #            if typedict.has_key(data.dtype.str[1:3]):
 #                self.datatype = numpy.array(typedict[data.dtype.str[1:3]], dtype="int32")
 #            else:
@@ -969,6 +969,10 @@ class _EbfTable(object):
     
     def __write_key(self,item,key):
         self.fp1.seek(self.data[2]+self.header['keypos']+item['keyloc'],0)
+        try:
+            key = key.decode()
+        except AttributeError:
+            pass
         self.fp1.write(key.encode('ascii'))
         
     def __read_header(self):
@@ -1064,6 +1068,8 @@ class _EbfTable(object):
         
         temp=0
         for key1 in keys1:
+            if not isinstance(key1, str):
+                keys1[keys1.index(key1)] = key1.decode('ascii')
             temp=temp+len(key1)                                
         if capacity <= 0:
             capacity=16
@@ -1082,7 +1088,10 @@ class _EbfTable(object):
             self.close()
             raise RuntimeError('EBF error: __expand,  htable is closed')
         else:
-            values1[keys1.index('/.ebf/htable')]=self.data[1]            
+            # keys1_str = [k.decode("ascii") for k in keys1 if not isinstance(s, str)]
+            # keys1_ = [k for k in keys1_str if '/.ebf/htable' in k]
+            # print(keys1_)
+            values1[keys1.index('/.ebf/htable')]=self.data[1]
             for key1,value1 in zip(keys1,values1):    
                 self.__add(key1,value1)                
                 
@@ -3428,18 +3437,18 @@ class _ebf_test(unittest.TestCase):
         nsize=100
         
         start = time.time()    
-        for i in numpy.arange(0, nsize):
+        for i in numpy.arange(0, nsize).astype(int):
             _EbfTable.put('check.txt','/x'+str(i),i*10)
         print('Writing  ', nsize*1e-3/(time.time()-start), ' Kops') 
                 
         start = time.time()    
         x=numpy.zeros(nsize)
-        for i in numpy.arange(0, nsize):
+        for i in numpy.arange(0, nsize).astype(int):
             x[i]=_EbfTable.get('check.txt','/x'+str(i))
         print('Reading  ', nsize*1e-3/(time.time()-start), ' Kops') 
         
         status1=1
-        for i in numpy.arange(0, nsize):
+        for i in numpy.arange(0, nsize).astype(int):
             if x[i] != i*10:
                 status1=0
                 print(i,x[i])
@@ -3449,18 +3458,19 @@ class _ebf_test(unittest.TestCase):
         
         start = time.time()    
         x=numpy.zeros(nsize)
-        for i in numpy.arange(0, nsize/2):
+        #print(numpy.arange(0, nsize/2))
+        for i in numpy.arange(0, nsize/2).astype(int):
             _EbfTable.remove('check.txt','/x'+str(i))
         print('Removing ', nsize*1e-3/(time.time()-start), ' Kops') 
         
-        for i in numpy.arange(0, nsize):
+        for i in numpy.arange(0, nsize).astype(int):
             x[i]=_EbfTable.get('check.txt','/x'+str(i))
             
         status2=1
-        for i in numpy.arange(0, nsize/2):
+        for i in numpy.arange(0, nsize/2).astype(int):
             if x[i] != -1:
                 status2=0
-        for i in numpy.arange(nsize/2, nsize):
+        for i in numpy.arange(nsize/2, nsize).astype(int):
             if x[i] != i*10:
                 status2=0
         
