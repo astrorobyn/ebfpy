@@ -468,13 +468,15 @@ class _TypeManager(object):
         """
         python type string to ebf type code    
         """
+        if typename.lower() == 'u5':
+            typename = 'u8'
         if typename in _TypeManager.typedicts:
             return _TypeManager.typedicts[typename]                               
         if typename in _TypeManager.typedictl:
             return _TypeManager.typedictl[typename]
         else:
-            print('datatype=',typename)
-            raise RuntimeError("Ebf error: unrecognized data type ")
+            # print('datatype=',typename)
+            raise RuntimeError("Ebf error: unrecognized data type: {}".format(typename))
 
     @staticmethod        
     def containsKey (typename):
@@ -567,11 +569,16 @@ class _EbfHeader:
         sig1 = numpy.fromstring(fp1.read(8), dtype = 'S8')[0]
         version = numpy.fromstring(fp1.read(4), dtype = 'int8')
         fp1.seek(-12, 1)
-        if sig0 == 'EBF' :                    
+        try:
+            sig0 = sig0.decode()
+        except UnicodeDecodeError:
+            pass
+        if sig0 == 'EBF':                    
             self.__read10(fp1)
         elif (version[0] == 1):
             self.__read11(fp1)
         else:
+            print(sig0, sig1, version)
             raise RuntimeError('EBF unrecognized header format')
     
 
@@ -582,8 +589,8 @@ class _EbfHeader:
         """
         sig = numpy.fromstring(fp1.read(6), dtype = 'int8')
         self.name = numpy.fromstring(fp1.read(100), dtype = 'S100')[0]
-        self.name=self.name.replace('\x00',' ')
-        self.name=self.name.strip().lower().decode('ascii')
+        self.name = self.name.replace('\x00'.encode(),' '.encode())
+        self.name = self.name.strip().lower().decode('ascii')
         
         unused = numpy.fromstring(fp1.read(2), dtype = 'int8')
         unused = numpy.fromstring(fp1.read(36), dtype = 'S1')
